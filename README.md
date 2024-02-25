@@ -1,1 +1,1 @@
-# HT5-SimulacionSistemaOperativo
+# SimulacionSistemaOperativo
