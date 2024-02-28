@@ -1,3 +1,5 @@
+import random
+
 # Victor Pérez
 # Clase que modela un proceso que llega al sistema operativo y se ejecuta
 class Process:
@@ -8,35 +10,45 @@ class Process:
         self.name = name
         self.instructions = instructions
 
+
     # Llegada del proceso al sistema operativo
     def new(self, ram, os):
-        print('%s arrives at %d' % (self.name, self.env.now))
+        print("{:.2f} - {} arrives".format(self.env.now, self.name))
 
+        # Solicita la cantidad de ram necesaria
         with os.ram.get(ram) as ram_req:
             yield ram_req
-            print('%s gets %d ram at %d' % (self.name, ram, self.env.now))
+            print("{:.2f} - {} gets {} ram".format(self.env.now, self.name, ram))
 
-            yield from self.ready(os)
+            # Se mantiene en cola hasta terminar sus instruccciones
+            while(self.instructions > 0):
+                yield from self.ready(os)
+
+                # Operaciones de entrada/salida
+                if self.instructions > 0 and random.randint(1, 2) == 1:
+                    print("{:.2f} - {} is waiting".format(self.env.now, self.name))
+                    yield self.env.timeout(2)
 
         os.ram.put(ram)
-        print('%s ends execution at %d' % (self.name, self.env.now))
+        print("{:.2f} - {} ends execution".format(self.env.now, self.name))
     
+
     # Espera a ser atendido por el CPU
     def ready(self, os):
         with os.cpu.request() as cpu_req:
             yield cpu_req
 
-            yield from self.running(cpu_req)
+            yield from self.running()
     
-    # Ejecucción del proceso
-    def running(self, cpu_req):
-        print('%s starts execution at %d' % (self.name, self.env.now))
 
-        while self.instructions > 0:
-            for i in range(3):
-                self.instructions -= 1
+    # Ejecución del proceso
+    def running(self):
+        print("{:.2f} - {} starts execution with {} instructions remaining".format(self.env.now, self.name, self.instructions))
 
-                if self.instructions == 0:
-                    yield cpu_req
-            
-            yield self.env.timeout(1)
+        self.instructions -= 3
+
+        # Proceso terminado
+        if self.instructions < 0:
+            return
+    
+        yield self.env.timeout(1)
